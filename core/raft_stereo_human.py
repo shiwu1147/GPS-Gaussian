@@ -81,6 +81,9 @@ class FlowUpdateModule(nn.Module):
         return up_flow.reshape(N, D, factor*H, factor*W)
 
     def forward(self, fmap1, fmap2, net_list, inp_list, iters=12, flow_init=None, test_mode=False):
+        iters=3
+        flow_init=None
+        test_mode=True
         if self.args.corr_implementation == "reg":  # Default
             corr_block = CorrBlock1D
             fmap1, fmap2 = fmap1.float(), fmap2.float()

@@ -31,7 +31,7 @@ class ConfigStereoHuman:
         self.cfg.raft.mixed_precision = None
         self.cfg.raft.train_iters = 0
         self.cfg.raft.val_iters = 0
-        self.cfg.raft.corr_implementation = 'reg_cuda'  # or 'reg'
+        self.cfg.raft.corr_implementation = 'reg'  # or 'reg_cuda'
         self.cfg.raft.corr_levels = 4
         self.cfg.raft.corr_radius = 4
         self.cfg.raft.n_downsample = 3

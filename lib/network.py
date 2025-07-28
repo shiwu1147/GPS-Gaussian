@@ -7,6 +7,7 @@ from lib.gs_parm_network import GSRegresser
 from lib.loss import sequence_loss
 from lib.utils import flow2depth, depth2pc
 from torch.cuda.amp import autocast as autocast
+import onnx
 
 
 class RtStereoHumanModel(nn.Module):
@@ -31,6 +32,15 @@ class RtStereoHumanModel(nn.Module):
 
         with autocast(enabled=self.cfg.raft.mixed_precision):
             img_feat = self.img_encoder(image)
+            torch.onnx.export(
+                self.img_encoder,
+                (image),
+                'img_encoder.onnx',
+                opset_version=16,
+                do_constant_folding=True,
+                input_names=['image'],
+                output_names=['x1', 'x2', 'x3']
+            )
 
         if is_train:
             flow_predictions = self.raft_stereo(img_feat[2], iters=self.train_iters)
@@ -50,6 +60,15 @@ class RtStereoHumanModel(nn.Module):
 
         else:
             flow_up = self.raft_stereo(img_feat[2], iters=self.val_iters, test_mode=True)
+            torch.onnx.export(
+                self.raft_stereo,
+                (img_feat[2]),
+                'raft_stereo.onnx',
+                opset_version=16,
+                do_constant_folding=True,
+                input_names=['img_feat'],
+                output_names=['flow_up']
+            )
             flow_loss, metrics = None, None
 
             data['lmain']['flow_pred'] = flow_up[0]
@@ -70,7 +89,16 @@ class RtStereoHumanModel(nn.Module):
 
         # regress gaussian parms
         lr_depth = torch.concat([data['lmain']['depth'], data['rmain']['depth']], dim=0)
-        rot_maps, scale_maps, opacity_maps = self.gs_parm_regresser(lr_img, lr_depth, lr_img_feat)
+        torch.onnx.export(
+            self.gs_parm_regresser,
+            (lr_img, lr_depth, lr_img_feat[0], lr_img_feat[1], lr_img_feat[2]),
+            'gs_regressor.onnx',
+            opset_version=16,
+            do_constant_folding=True,
+            input_names=['lr_img', 'lr_depth', 'lr_img_feat0', 'lr_img_feat1', 'lr_img_feat2'],
+            output_names=['rot_maps', 'scale_maps', 'opacity_maps']
+        )
+        rot_maps, scale_maps, opacity_maps = self.gs_parm_regresser(lr_img, lr_depth, lr_img_feat[0], lr_img_feat[1], lr_img_feat[2])
 
         data['lmain']['rot_maps'], data['rmain']['rot_maps'] = torch.split(rot_maps, [bs, bs])
         data['lmain']['scale_maps'], data['rmain']['scale_maps'] = torch.split(scale_maps, [bs, bs])

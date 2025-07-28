@@ -49,8 +49,7 @@ class GSRegresser(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, img, depth, img_feat):
-        img_feat1, img_feat2, img_feat3 = img_feat
+    def forward(self, img, depth, img_feat1, img_feat2, img_feat3):
         depth_feat1, depth_feat2, depth_feat3 = self.depth_encoder(depth)
 
         feat3 = torch.concat([img_feat3, depth_feat3], dim=1)
