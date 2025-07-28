@@ -25,6 +25,10 @@ class RAFTStereoHuman(nn.Module):
 
     def forward(self, image_pair, iters=12, flow_init=None, test_mode=False):
         """ Estimate optical flow between pair of frames """
+        
+        iters=3
+        flow_init=None
+        test_mode=True
 
         if flow_init is not None:
             flow_init = downflow8(flow_init)
@@ -46,7 +50,7 @@ class RAFTStereoHuman(nn.Module):
         flow_pred = self.update_module(fmap12, fmap21, net_list, inp_list, iters, flow_init, test_mode)
 
         if not test_mode:
-            return flow_pred
+            return flow_pred.split(dim=0, split_size=flow_pred.shape[0]//2)
         else:
             return flow_pred.split(dim=0, split_size=flow_pred.shape[0]//2)
 
@@ -81,9 +85,6 @@ class FlowUpdateModule(nn.Module):
         return up_flow.reshape(N, D, factor*H, factor*W)
 
     def forward(self, fmap1, fmap2, net_list, inp_list, iters=12, flow_init=None, test_mode=False):
-        iters=3
-        flow_init=None
-        test_mode=True
         if self.args.corr_implementation == "reg":  # Default
             corr_block = CorrBlock1D
             fmap1, fmap2 = fmap1.float(), fmap2.float()
