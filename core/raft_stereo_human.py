@@ -50,7 +50,7 @@ class RAFTStereoHuman(nn.Module):
         flow_pred = self.update_module(fmap12, fmap21, net_list, inp_list, iters, flow_init, test_mode)
 
         if not test_mode:
-            return flow_pred.split(dim=0, split_size=flow_pred.shape[0]//2)
+            return flow_pred
         else:
             return flow_pred.split(dim=0, split_size=flow_pred.shape[0]//2)
 
